@@ -13,11 +13,11 @@ class APG_Character : public ACharacter
 
 public:
 	/** Side view camera */
-	UPROPERTY(VisibleAnywhere, Category = Camera)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
 	class UCameraComponent* SideViewCameraComponent;
 
 	/** Camera boom positioning the camera beside the character */
-	UPROPERTY(VisibleAnywhere, Category = Camera)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
 	class USpringArmComponent* CameraBoom;
 
 protected:
