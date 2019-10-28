@@ -6,6 +6,7 @@
 #include "Components/InputComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/SceneCaptureComponent2D.h"
 
 APG_Character::APG_Character()
 {
@@ -31,6 +32,10 @@ APG_Character::APG_Character()
 	SideViewCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	SideViewCameraComponent->bUsePawnControlRotation = false; // We don't want the controller rotating the camera
 
+	// Create a camera and attach to head
+	EyeCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("EyeSceneCapture"));
+	EyeCaptureComponent->SetupAttachment(GetMesh(), "head");
+
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Face in the direction we are moving..
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f); // ...at this rotation rate
@@ -45,10 +50,11 @@ APG_Character::APG_Character()
 
 void APG_Character::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
-	// set up gameplay key bindings
+	// set up game play key bindings
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 	PlayerInputComponent->BindAxis("MoveRight", this, &APG_Character::MoveRight);
+	PlayerInputComponent->BindAxis("MoveForward", this, &APG_Character::MoveForward);
 
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &APG_Character::TouchStarted);
 	PlayerInputComponent->BindTouch(IE_Released, this, &APG_Character::TouchStopped);
@@ -58,6 +64,12 @@ void APG_Character::MoveRight(float Value)
 {
 	// add movement in that direction
 	AddMovementInput(FVector(0.f,-1.f,0.f), Value);
+}
+
+void APG_Character::MoveForward(float Value)
+{
+	// add movement in that direction
+	AddMovementInput(FVector(-1.f, 0.f, 0.f), Value);
 }
 
 void APG_Character::TouchStarted(const ETouchIndex::Type FingerIndex, const FVector Location)
@@ -70,4 +82,3 @@ void APG_Character::TouchStopped(const ETouchIndex::Type FingerIndex, const FVec
 {
 	StopJumping();
 }
-

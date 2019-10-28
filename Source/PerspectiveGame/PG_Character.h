@@ -16,14 +16,18 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
 	class UCameraComponent* SideViewCameraComponent;
 
+	/** Eye view camera */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
+	class USceneCaptureComponent2D* EyeCaptureComponent;
+
 	/** Camera boom positioning the camera beside the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
 	class USpringArmComponent* CameraBoom;
 
 protected:
 
-	/** Called for side to side input */
-	void MoveRight(float Val);
+	void MoveRight(float Value);
+	void MoveForward(float Value);
 
 	/** Handle touch inputs. */
 	void TouchStarted(const ETouchIndex::Type FingerIndex, const FVector Location);
