@@ -24,8 +24,22 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
 	class USpringArmComponent* CameraBoom;
 
-protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Camera)
+		UMaterialParameterCollection* MPC_LOSAsset;
 
+
+private:
+	UMaterialParameterCollectionInstance* MPC_LOSInstance;
+
+public:
+	APG_Character();
+
+	/** Returns SideViewCameraComponent subobject **/
+	FORCEINLINE class UCameraComponent* GetSideViewCameraComponent() const { return SideViewCameraComponent; }
+	/** Returns CameraBoom subobject **/
+	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+
+protected:
 	void MoveRight(float Value);
 	void MoveForward(float Value);
 
@@ -39,11 +53,11 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	// End of APawn interface
 
-public:
-	APG_Character();
+	virtual void Tick(float DeltaSeconds) override;
 
-	/** Returns SideViewCameraComponent subobject **/
-	FORCEINLINE class UCameraComponent* GetSideViewCameraComponent() const { return SideViewCameraComponent; }
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	virtual void BeginPlay() override;
+
+private:
+	FVector4 MultiplyVectorMatrix(const FVector4& vector, const FMatrix& matrix) const;
+	
 };
