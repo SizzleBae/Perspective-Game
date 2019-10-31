@@ -81,6 +81,7 @@ FVector4 APG_Character::MultiplyVectorMatrix(const FVector4& Vector, const FMatr
 
 }
 
+FRotator test(0,0,0);
 void APG_Character::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -90,23 +91,25 @@ void APG_Character::Tick(float DeltaSeconds)
 	EyeCaptureComponent->GetCameraView(0, ViewInfo);
 
 	FMatrix P = ViewInfo.CalculateProjectionMatrix();
-	FMatrix V = (FTranslationMatrix(ViewInfo.Location) * FRotationMatrix(ViewInfo.Rotation)).Inverse();
-	
-	FMatrix PV = V * P;
+	//test.Roll += DeltaSeconds * 30;
+	test.Yaw += DeltaSeconds * 30;
+	FMatrix V = FRotationTranslationMatrix(ViewInfo.Rotation, ViewInfo.Location).Inverse();
+
+	FMatrix PV = V * FLookAtMatrix(FVector(0, 0, 0), FVector(-1.f, 0, 0), FVector(0, 0, -1.f)) * P;
 
 	MPC_LOSInstance->SetVectorParameterValue("PVRow0", FLinearColor(PV.M[0][0], PV.M[0][1], PV.M[0][2], PV.M[0][3]));
 	MPC_LOSInstance->SetVectorParameterValue("PVRow1", FLinearColor(PV.M[1][0], PV.M[1][1], PV.M[1][2], PV.M[1][3]));
 	MPC_LOSInstance->SetVectorParameterValue("PVRow2", FLinearColor(PV.M[2][0], PV.M[2][1], PV.M[2][2], PV.M[2][3]));
 	MPC_LOSInstance->SetVectorParameterValue("PVRow3", FLinearColor(PV.M[3][0], PV.M[3][1], PV.M[3][2], PV.M[3][3]));
 	
-	FVector TestPos(200.f, 100.f, 50.f);
+	FVector4 TestPos(500.f, 500.f, 99999.f, 1.f);
 
-	UE_LOG(LogTemp, Warning, TEXT("World : %s"), *TestPos.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("World : %s"), *TestPos.ToString());
 	//TestPos = MultiplyVectorMatrix(TestPos, V);
-	UE_LOG(LogTemp, Warning, TEXT("Local : %s"), *TestPos.ToString());
-	TestPos = MultiplyVectorMatrix(TestPos, V * P);
-	TestPos /= TestPos.Z;
-	UE_LOG(LogTemp, Warning, TEXT("Screen: %s"), *TestPos.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("Local : %s"), *TestPos.ToString());
+	//TestPos = MultiplyVectorMatrix(TestPos, P);
+	//TestPos =  TestPos / (TestPos.W);
+	//UE_LOG(LogTemp, Warning, TEXT("Screen: %s"), *TestPos.ToString());
 }
 
 void APG_Character::MoveRight(float Value)
