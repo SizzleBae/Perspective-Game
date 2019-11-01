@@ -36,7 +36,7 @@ APG_Character::APG_Character()
 	// Create a camera and attach to head
 	EyeCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("EyeSceneCapture"));
 	EyeCaptureComponent->SetupAttachment(GetCapsuleComponent());
-	//EyeCaptureComponent->SetupAttachment(GetMesh(), "head");
+	EyeCaptureComponent->SetupAttachment(GetMesh(), "head");
 
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Face in the direction we are moving..
