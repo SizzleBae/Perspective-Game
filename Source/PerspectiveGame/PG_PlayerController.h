@@ -14,4 +14,17 @@ class PERSPECTIVEGAME_API APG_PlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
+private:
+	class APG_Character* Character;
+
+	FVector LookTowardsLocation;
+
+public:
+	APG_PlayerController();
+
+	virtual void PlayerTick(float DeltaTime) override;
+
+protected:
+	virtual void OnPossess(APawn* aPawn) override;
+
 };

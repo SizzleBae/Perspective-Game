@@ -8,6 +8,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Materials/MaterialParameterCollectionInstance.h"
+#include "Kismet/KismetMathLibrary.h"
 
 APG_Character::APG_Character()
 {
@@ -36,7 +37,6 @@ APG_Character::APG_Character()
 	// Create a camera and attach to head
 	EyeCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("EyeSceneCapture"));
 	EyeCaptureComponent->SetupAttachment(GetCapsuleComponent());
-	EyeCaptureComponent->SetupAttachment(GetMesh(), "head");
 
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Face in the direction we are moving..
@@ -48,6 +48,30 @@ APG_Character::APG_Character()
 	GetCharacterMovement()->MaxWalkSpeed = 600.f;
 	GetCharacterMovement()->MaxFlySpeed = 600.f;
 
+}
+
+void APG_Character::LookTowards(const FVector& TargetLocation)
+{
+	FVector NewEyeForward = TargetLocation - EyeCaptureComponent->GetComponentLocation();
+	EyeCaptureComponent->SetWorldRotation(NewEyeForward.Rotation());
+
+
+	FVector NewCameraForward = TargetLocation - SideViewCameraComponent->GetComponentLocation();
+	FRotator NewCameraRotation = NewCameraForward.Rotation();
+	
+	FTransform LocalTransform = UKismetMathLibrary::ConvertTransformToRelative(FTransform(NewCameraRotation), SideViewCameraComponent->GetAttachParent()->GetComponentTransform());
+	FRotator LocalRotation = LocalTransform.Rotator();
+
+	LocalRotation.Yaw = LimitAngle(LocalRotation.Yaw);
+	LocalRotation.Pitch = LimitAngle(LocalRotation.Pitch);
+	LocalRotation.Roll = 0.f;
+
+	SideViewCameraComponent->SetRelativeRotation(LocalRotation.GetInverse());
+}
+
+FVector APG_Character::GetEyeLocation() const
+{
+	return EyeCaptureComponent->GetComponentLocation();
 }
 
 void APG_Character::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -69,19 +93,13 @@ void APG_Character::BeginPlay()
 	MPC_LOSInstance = GetWorld()->GetParameterCollectionInstance(MPC_LOSAsset);
 }
 
-FVector4 APG_Character::MultiplyVectorMatrix(const FVector4& Vector, const FMatrix& Matrix) const
+float APG_Character::LimitAngle(float Angle) const
 {
-
-	FVector4 Row0(Matrix.M[0][0], Matrix.M[0][1], Matrix.M[0][2], Matrix.M[0][3]);
-	FVector4 Row1(Matrix.M[1][0], Matrix.M[1][1], Matrix.M[1][2], Matrix.M[1][3]);
-	FVector4 Row2(Matrix.M[2][0], Matrix.M[2][1], Matrix.M[2][2], Matrix.M[2][3]);
-	FVector4 Row3(Matrix.M[3][0], Matrix.M[3][1], Matrix.M[3][2], Matrix.M[3][3]);
-
-	return (Row0 * Vector.X) + (Row1 * Vector.Y) + (Row2 * Vector.Z) + (Row3 * Vector.W);
-
+	float SmoothFactor = FMath::SmoothStep(0, MaxCameraDegOffset * 3.f, FMath::Abs(Angle));
+	UE_LOG(LogTemp, Warning, TEXT("Given: %f, SmoothFactor: %f"), Angle, SmoothFactor);
+	return  SmoothFactor * MaxCameraDegOffset * FMath::Sign(Angle);
 }
 
-FRotator test(0,0,0);
 void APG_Character::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -90,26 +108,17 @@ void APG_Character::Tick(float DeltaSeconds)
 	FMinimalViewInfo ViewInfo;
 	EyeCaptureComponent->GetCameraView(0, ViewInfo);
 
-	FMatrix P = ViewInfo.CalculateProjectionMatrix();
-	//test.Roll += DeltaSeconds * 30;
-	test.Yaw += DeltaSeconds * 30;
-	FMatrix V = FRotationTranslationMatrix(ViewInfo.Rotation, ViewInfo.Location).Inverse();
+	// Matrix used in materials to project world coordinates to eye camera screen space
+	FMatrix EyeMatrix = FRotationTranslationMatrix(ViewInfo.Rotation, ViewInfo.Location).Inverse() 
+		* FLookAtMatrix(FVector(0, 0, 0), FVector(-1.f, 0, 0), FVector(0, 0, -1.f)) 
+		* ViewInfo.CalculateProjectionMatrix();
 
-	FMatrix PV = V * FLookAtMatrix(FVector(0, 0, 0), FVector(-1.f, 0, 0), FVector(0, 0, -1.f)) * P;
-
-	MPC_LOSInstance->SetVectorParameterValue("PVRow0", FLinearColor(PV.M[0][0], PV.M[0][1], PV.M[0][2], PV.M[0][3]));
-	MPC_LOSInstance->SetVectorParameterValue("PVRow1", FLinearColor(PV.M[1][0], PV.M[1][1], PV.M[1][2], PV.M[1][3]));
-	MPC_LOSInstance->SetVectorParameterValue("PVRow2", FLinearColor(PV.M[2][0], PV.M[2][1], PV.M[2][2], PV.M[2][3]));
-	MPC_LOSInstance->SetVectorParameterValue("PVRow3", FLinearColor(PV.M[3][0], PV.M[3][1], PV.M[3][2], PV.M[3][3]));
+	// Matrix must be split and sent in to vector parameters
+	MPC_LOSInstance->SetVectorParameterValue("PVRow0", FLinearColor(EyeMatrix.M[0][0], EyeMatrix.M[0][1], EyeMatrix.M[0][2], EyeMatrix.M[0][3]));
+	MPC_LOSInstance->SetVectorParameterValue("PVRow1", FLinearColor(EyeMatrix.M[1][0], EyeMatrix.M[1][1], EyeMatrix.M[1][2], EyeMatrix.M[1][3]));
+	MPC_LOSInstance->SetVectorParameterValue("PVRow2", FLinearColor(EyeMatrix.M[2][0], EyeMatrix.M[2][1], EyeMatrix.M[2][2], EyeMatrix.M[2][3]));
+	MPC_LOSInstance->SetVectorParameterValue("PVRow3", FLinearColor(EyeMatrix.M[3][0], EyeMatrix.M[3][1], EyeMatrix.M[3][2], EyeMatrix.M[3][3]));
 	
-	FVector4 TestPos(500.f, 500.f, 99999.f, 1.f);
-
-	//UE_LOG(LogTemp, Warning, TEXT("World : %s"), *TestPos.ToString());
-	//TestPos = MultiplyVectorMatrix(TestPos, V);
-	//UE_LOG(LogTemp, Warning, TEXT("Local : %s"), *TestPos.ToString());
-	//TestPos = MultiplyVectorMatrix(TestPos, P);
-	//TestPos =  TestPos / (TestPos.W);
-	//UE_LOG(LogTemp, Warning, TEXT("Screen: %s"), *TestPos.ToString());
 }
 
 void APG_Character::MoveRight(float Value)

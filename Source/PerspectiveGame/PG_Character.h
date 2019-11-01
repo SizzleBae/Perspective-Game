@@ -27,6 +27,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Camera)
 		UMaterialParameterCollection* MPC_LOSAsset;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Camera)
+		float MaxCameraDegOffset = 15.f;
 
 private:
 	UMaterialParameterCollectionInstance* MPC_LOSInstance;
@@ -38,6 +40,10 @@ public:
 	FORCEINLINE class UCameraComponent* GetSideViewCameraComponent() const { return SideViewCameraComponent; }
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+
+	FORCEINLINE FVector GetEyeLocation() const;
+
+	void LookTowards(const FVector& TargetLocation);
 
 protected:
 	void MoveRight(float Value);
@@ -58,6 +64,6 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	FVector4 MultiplyVectorMatrix(const FVector4& vector, const FMatrix& matrix) const;
-	
+	float LimitAngle(float Angle) const;
+
 };
