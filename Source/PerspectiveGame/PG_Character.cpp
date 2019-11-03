@@ -46,27 +46,29 @@ APG_Character::APG_Character()
 	GetCharacterMovement()->JumpZVelocity = 1000.f;
 	GetCharacterMovement()->GroundFriction = 3.f;
 	GetCharacterMovement()->MaxWalkSpeed = 600.f;
-	GetCharacterMovement()->MaxFlySpeed = 600.f;
+	GetCharacterMovement()->MaxFlySpeed = 300.f;
 
 }
 
 void APG_Character::LookTowards(const FVector& TargetLocation)
 {
+	// Point eye render target camera towards target location
 	FVector NewEyeForward = TargetLocation - EyeCaptureComponent->GetComponentLocation();
 	EyeCaptureComponent->SetWorldRotation(NewEyeForward.Rotation());
 
-
+	// Pan camera slightly towards location
 	FVector NewCameraForward = TargetLocation - SideViewCameraComponent->GetComponentLocation();
 	FRotator NewCameraRotation = NewCameraForward.Rotation();
 	
-	FTransform LocalTransform = UKismetMathLibrary::ConvertTransformToRelative(FTransform(NewCameraRotation), SideViewCameraComponent->GetAttachParent()->GetComponentTransform());
-	FRotator LocalRotation = LocalTransform.Rotator();
+	FTransform NewCameraLocalTransform = UKismetMathLibrary::MakeRelativeTransform(SideViewCameraComponent->GetAttachParent()->GetComponentTransform(), FTransform(NewCameraRotation));
+	
+	// Limit based on MaxCameraDegOffset
+	FRotator NewCameraLocalRotation = NewCameraLocalTransform.Rotator();
+	NewCameraLocalRotation.Yaw = LimitAngle(NewCameraLocalRotation.Yaw);
+	NewCameraLocalRotation.Pitch = LimitAngle(NewCameraLocalRotation.Pitch);
+	NewCameraLocalRotation.Roll = 0.f;
 
-	LocalRotation.Yaw = LimitAngle(LocalRotation.Yaw);
-	LocalRotation.Pitch = LimitAngle(LocalRotation.Pitch);
-	LocalRotation.Roll = 0.f;
-
-	SideViewCameraComponent->SetRelativeRotation(LocalRotation.GetInverse());
+	SideViewCameraComponent->SetRelativeRotation(NewCameraLocalRotation.GetInverse());
 }
 
 FVector APG_Character::GetEyeLocation() const
