@@ -29,6 +29,18 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Camera)
 		float MaxCameraDegOffset = 15.f;
+	
+	// The animation to play while running around
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animations)
+		class UPaperFlipbook* RunningAnimation;
+
+	// The animation to play while idle (standing still)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animations)
+		class UPaperFlipbook* IdleAnimation;
+
+	/** The main skeletal mesh associated with this Character (optional sub-object). */
+	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly)
+		class UPaperFlipbookComponent* Sprite;
 
 private:
 	UMaterialParameterCollectionInstance* MPC_LOSInstance;
@@ -62,6 +74,10 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 
 	virtual void BeginPlay() override;
+
+	/** Called to choose the correct animation to play based on the character's movement state */
+	void UpdateAnimation();
+	void UpdateCharacter();
 
 private:
 	float LimitAngle(float Angle) const;

@@ -9,6 +9,7 @@
 #include "Components/SceneCaptureComponent2D.h"
 #include "Materials/MaterialParameterCollectionInstance.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "PaperFlipbookComponent.h"
 
 APG_Character::APG_Character()
 {
@@ -48,6 +49,20 @@ APG_Character::APG_Character()
 	GetCharacterMovement()->MaxWalkSpeed = 600.f;
 	GetCharacterMovement()->MaxFlySpeed = 300.f;
 
+	// Try to create the sprite component
+	Sprite = CreateOptionalDefaultSubobject<UPaperFlipbookComponent>("CharacterSprite");
+	if(Sprite)
+	{
+		Sprite->AlwaysLoadOnClient = true;
+		Sprite->AlwaysLoadOnServer = true;
+		Sprite->bOwnerNoSee = false;
+		Sprite->bAffectDynamicIndirectLighting = true;
+		Sprite->PrimaryComponentTick.TickGroup = TG_PrePhysics;
+		Sprite->SetupAttachment(GetCapsuleComponent());
+		static FName CollisionProfileName(TEXT("CharacterMesh"));
+		Sprite->SetCollisionProfileName(CollisionProfileName);
+		Sprite->SetGenerateOverlapEvents(false);
+	}
 }
 
 void APG_Character::LookTowards(const FVector& TargetLocation)
@@ -69,6 +84,41 @@ void APG_Character::LookTowards(const FVector& TargetLocation)
 	NewCameraLocalRotation.Roll = 0.f;
 
 	SideViewCameraComponent->SetRelativeRotation(NewCameraLocalRotation.GetInverse());
+}
+
+void APG_Character::UpdateCharacter()
+{
+	// Update animation to match the motion
+	UpdateAnimation();
+
+	// Now setup the rotation of the controller based on the direction we are travelling
+	const FVector PlayerVelocity = GetVelocity();
+	float TravelDirection = PlayerVelocity.X;
+	// Set the rotation so that the character faces his direction of travel.
+	if(Controller != nullptr)
+	{
+		if(TravelDirection < 0.0f)
+		{
+			Controller->SetControlRotation(FRotator(0.0, 180.0f, 0.0f));
+		}
+		else if(TravelDirection > 0.0f)
+		{
+			Controller->SetControlRotation(FRotator(0.0f, 0.0f, 0.0f));
+		}
+	}
+}
+
+void APG_Character::UpdateAnimation()
+{
+	const FVector PlayerVelocity = GetVelocity();
+	const float PlayerSpeedSqr = PlayerVelocity.SizeSquared();
+
+	// Are we moving or standing still?
+	UPaperFlipbook* DesiredAnimation = (PlayerSpeedSqr > 0.0f) ? RunningAnimation : IdleAnimation;
+	if(Sprite->GetFlipbook() != DesiredAnimation)
+	{
+		Sprite->SetFlipbook(DesiredAnimation);
+	}
 }
 
 FVector APG_Character::GetEyeLocation() const
@@ -120,7 +170,8 @@ void APG_Character::Tick(float DeltaSeconds)
 	MPC_LOSInstance->SetVectorParameterValue("PVRow1", FLinearColor(EyeMatrix.M[1][0], EyeMatrix.M[1][1], EyeMatrix.M[1][2], EyeMatrix.M[1][3]));
 	MPC_LOSInstance->SetVectorParameterValue("PVRow2", FLinearColor(EyeMatrix.M[2][0], EyeMatrix.M[2][1], EyeMatrix.M[2][2], EyeMatrix.M[2][3]));
 	MPC_LOSInstance->SetVectorParameterValue("PVRow3", FLinearColor(EyeMatrix.M[3][0], EyeMatrix.M[3][1], EyeMatrix.M[3][2], EyeMatrix.M[3][3]));
-	
+
+	UpdateCharacter();
 }
 
 void APG_Character::MoveRight(float Value)

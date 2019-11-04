@@ -19,7 +19,7 @@ void APG_PlayerController::PlayerTick(float DeltaTime)
 		DeprojectMousePositionToWorld(MouseWorldLocation, MouseWorldDirection);
 
 		FHitResult Result;
-		GetWorld()->LineTraceSingleByChannel(Result, MouseWorldLocation, MouseWorldLocation + (MouseWorldDirection * 9999.f), ECC_WorldDynamic);
+		GetWorld()->LineTraceSingleByChannel(Result, MouseWorldLocation, MouseWorldLocation + (MouseWorldDirection * 9999.f), ECC_WorldStatic);
 	
 		if(Result.bBlockingHit) 
 		{
